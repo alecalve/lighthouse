@@ -384,9 +384,7 @@ pub fn process_epoch_single_pass<E: EthSpec>(
             // Only check the signature if this is the first deposit for the validator,
             // following the logic from `apply_pending_deposit` in the spec.
             if let Some(validator_index) = state.get_validator_index(&deposit_data.pubkey)? {
-                state
-                    .get_balance_mut(validator_index)?
-                    .safe_add_assign(deposit_data.amount)?;
+                increase_balance(state, validator_index, deposit_data.amount)?;
             } else if is_valid_deposit_signature(&deposit_data, spec).is_ok() {
                 // Apply the new deposit to the state
                 let validator_index = state.add_validator_to_registry(

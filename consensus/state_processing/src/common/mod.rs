@@ -19,13 +19,20 @@ pub use slash_validator::slash_validator;
 use safe_arith::SafeArith;
 use types::{BeaconState, BeaconStateError, EthSpec};
 
+/// Get a mutable reference to the balance of a single validator.
+fn get_balance_mut<E: EthSpec>(state: &mut BeaconState<E>, validator_index: usize) -> Result<&mut u64, BeaconStateError> {
+    state.balances_mut()
+        .get_mut(validator_index)
+        .ok_or(BeaconStateError::BalancesOutOfBounds(validator_index))
+}
+
 /// Increase the balance of a validator, erroring upon overflow, as per the spec.
 pub fn increase_balance<E: EthSpec>(
     state: &mut BeaconState<E>,
     index: usize,
     delta: u64,
 ) -> Result<(), BeaconStateError> {
-    increase_balance_directly(state.get_balance_mut(index)?, delta)
+    increase_balance_directly(get_balance_mut(state, index)?, delta)
 }
 
 /// Decrease the balance of a validator, saturating upon overflow, as per the spec.
@@ -34,7 +41,7 @@ pub fn decrease_balance<E: EthSpec>(
     index: usize,
     delta: u64,
 ) -> Result<(), BeaconStateError> {
-    decrease_balance_directly(state.get_balance_mut(index)?, delta)
+    decrease_balance_directly(get_balance_mut(state, index)?, delta)
 }
 
 /// Increase the balance of a validator, erroring upon overflow, as per the spec.

@@ -50,10 +50,7 @@ pub fn process_sync_aggregate<E: EthSpec>(
     let committee_indices = state.get_sync_committee_indices(&current_sync_committee)?;
 
     let proposer_index = proposer_index as usize;
-    let mut proposer_balance = *state
-        .balances()
-        .get(proposer_index)
-        .ok_or(BeaconStateError::BalancesOutOfBounds(proposer_index))?;
+    let mut proposer_balance_delta: i64 = 0;
 
     for (participant_index, participation_bit) in committee_indices
         .into_iter()
@@ -63,19 +60,23 @@ pub fn process_sync_aggregate<E: EthSpec>(
             // Accumulate proposer rewards in a temp var in case the proposer has very low balance, is
             // part of the sync committee, does not participate and its penalties saturate.
             if participant_index == proposer_index {
-                proposer_balance.safe_add_assign(participant_reward)?;
+                proposer_balance_delta.safe_add_assign(participant_reward as i64)?;
             } else {
                 increase_balance(state, participant_index, participant_reward)?;
             }
-            proposer_balance.safe_add_assign(proposer_reward)?;
+            proposer_balance_delta.safe_add_assign(proposer_reward as i64)?;
         } else if participant_index == proposer_index {
-            proposer_balance = proposer_balance.saturating_sub(participant_reward);
+            proposer_balance_delta = proposer_balance_delta.saturating_sub(participant_reward as i64);
         } else {
             decrease_balance(state, participant_index, participant_reward)?;
         }
     }
 
-    *state.get_balance_mut(proposer_index)? = proposer_balance;
+    if proposer_balance_delta > 0 {
+        increase_balance(state, proposer_index, proposer_balance_delta as u64)?;
+    } else if proposer_balance_delta < 0 {
+        decrease_balance(state, proposer_index, (-proposer_balance_delta) as u64)?;
+    }
 
     Ok(())
 }

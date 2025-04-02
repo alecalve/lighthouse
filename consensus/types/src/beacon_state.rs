@@ -1569,13 +1569,6 @@ impl<E: EthSpec> BeaconState<E> {
             .copied()
     }
 
-    /// Get a mutable reference to the balance of a single validator.
-    pub fn get_balance_mut(&mut self, validator_index: usize) -> Result<&mut u64, Error> {
-        self.balances_mut()
-            .get_mut(validator_index)
-            .ok_or(Error::BalancesOutOfBounds(validator_index))
-    }
-
     /// Generate a seed for the given `epoch`.
     pub fn get_seed(
         &self,
